@@ -119,22 +119,25 @@ else:
     roc_data = {}
     pr_data = {}
     
+    # 🛠️ THE FIX: Flatten y_test to ensure Scikit-Learn accepts it safely from the Streamlit cache
+    y_test_flat = np.array(y_test).flatten()
+    
     for model_name in selected_models:
         y_prob = predictions[model_name]['proba']
         y_pred_class = predictions[model_name]['class']
         
-        # Metrics
-        acc = accuracy_score(y_test, y_pred_class)
-        auc = roc_auc_score(y_test, y_prob)
-        ap = average_precision_score(y_test, y_prob)
+        # Metrics using the flattened y_test
+        acc = accuracy_score(y_test_flat, y_pred_class)
+        auc = roc_auc_score(y_test_flat, y_prob)
+        ap = average_precision_score(y_test_flat, y_prob)
         metrics_data.append({'Model': model_name, 'Accuracy': acc, 'AUC': auc, 'Average Precision': ap})
         
         # ROC Data
-        fpr, tpr, _ = roc_curve(y_test, y_prob)
+        fpr, tpr, _ = roc_curve(y_test_flat, y_prob)
         roc_data[model_name] = (fpr, tpr, auc)
         
         # PR Data
-        prec, rec, _ = precision_recall_curve(y_test, y_prob)
+        prec, rec, _ = precision_recall_curve(y_test_flat, y_prob)
         pr_data[model_name] = (prec, rec, ap)
 
     # TAB 1: Metrics Table
