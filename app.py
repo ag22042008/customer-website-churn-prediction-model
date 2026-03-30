@@ -74,7 +74,7 @@ def train_ann(X_train, y_train):
     model.add(Dense(1, activation='sigmoid'))
 
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    model.fit(X_train, y_train, epochs=20, verbose=0)
+    model.fit(X_train, y_train, epochs=5, verbose=0)
 
     return model
 
