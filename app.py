@@ -105,4 +105,80 @@ predictions = get_predictions(trained_models, X_test)
 
 # --- 5. Sidebar UI ---
 st.sidebar.header("Model Selection")
-model_options = ['Logistic Regression', 'Decision Tree', 'Keras ANN
+model_options = ['Logistic Regression', 'Decision Tree', 'Keras ANN']
+selected_models = st.sidebar.multiselect("Select models to compare:", model_options, default=model_options)
+
+# --- 6. Main Content Area (Tabs) ---
+if not selected_models:
+    st.warning("👈 Please select at least one model from the sidebar to view metrics.")
+else:
+    tab1, tab2, tab3 = st.tabs(["📊 Model Metrics Comparison", "📈 ROC Curve", "📉 Precision-Recall Curve"])
+    
+    # Calculations for selected models
+    metrics_data = []
+    roc_data = {}
+    pr_data = {}
+    
+    for model_name in selected_models:
+        y_prob = predictions[model_name]['proba']
+        y_pred_class = predictions[model_name]['class']
+        
+        # Metrics
+        acc = accuracy_score(y_test, y_pred_class)
+        auc = roc_auc_score(y_test, y_prob)
+        ap = average_precision_score(y_test, y_prob)
+        metrics_data.append({'Model': model_name, 'Accuracy': acc, 'AUC': auc, 'Average Precision': ap})
+        
+        # ROC Data
+        fpr, tpr, _ = roc_curve(y_test, y_prob)
+        roc_data[model_name] = (fpr, tpr, auc)
+        
+        # PR Data
+        prec, rec, _ = precision_recall_curve(y_test, y_prob)
+        pr_data[model_name] = (prec, rec, ap)
+
+    # TAB 1: Metrics Table
+    with tab1:
+        st.subheader("Comparison Table")
+        comparison_df = pd.DataFrame(metrics_data).set_index('Model')
+        st.dataframe(comparison_df.style.highlight_max(axis=0, color='lightgreen'))
+        
+        st.markdown("""
+        **Quick Guide:**
+        * **Accuracy:** Overall correctness (Can be misleading in imbalanced datasets like churn).
+        * **AUC:** How well the model separates churners from non-churners. Higher is better.
+        * **Average Precision:** Area under the PR curve. Crucial when focusing on finding the actual churners accurately.
+        """)
+
+    # TAB 2: ROC Curve
+    with tab2:
+        st.subheader("Receiver Operating Characteristic (ROC) Curve")
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        for model_name, (fpr, tpr, auc) in roc_data.items():
+            ax.plot(fpr, tpr, label=f'{model_name} (AUC = {auc:.2f})')
+            
+        ax.plot([0, 1], [0, 1], 'k--', label='Random Classifier')
+        ax.set_xlabel('False Positive Rate (FPR)')
+        ax.set_ylabel('True Positive Rate (TPR)')
+        ax.set_title('ROC Curve for Churn Prediction Models')
+        ax.legend(loc='lower right')
+        ax.grid(True)
+        
+        st.pyplot(fig)
+
+    # TAB 3: Precision-Recall Curve
+    with tab3:
+        st.subheader("Precision-Recall Curve")
+        fig2, ax2 = plt.subplots(figsize=(10, 6))
+        
+        for model_name, (prec, rec, ap) in pr_data.items():
+            ax2.plot(rec, prec, label=f'{model_name} (AP = {ap:.2f})')
+            
+        ax2.set_xlabel('Recall')
+        ax2.set_ylabel('Precision')
+        ax2.set_title('Precision-Recall Curve for Churn Prediction Models')
+        ax2.legend(loc='lower left')
+        ax2.grid(True)
+        
+        st.pyplot(fig2)
